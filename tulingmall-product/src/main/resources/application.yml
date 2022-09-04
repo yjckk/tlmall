@@ -2,7 +2,7 @@ server:
   port: 8866
 spring:
   datasource:
-    url: jdbc:mysql://tlshop.com:3306/micromall?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://47.106.85.182:3306/micromall?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
     username: root
     password: root
     druid:
