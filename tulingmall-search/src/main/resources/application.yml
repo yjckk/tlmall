@@ -18,7 +18,7 @@ spring:
     elasticsearch:
       repositories:
         enabled: true
-      cluster-nodes: 192.168.50.191:9300
+      cluster-nodes: 120.77.171.208:9200
       cluster-name: elasticsearch
 mybatis:
   mapper-locations:
