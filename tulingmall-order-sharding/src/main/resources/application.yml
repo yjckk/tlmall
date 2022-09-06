@@ -168,7 +168,7 @@ mybatis:
 
 
 rocketmq:
-  name-server: 192.168.65.232:9876 #连接超时时间
+  name-server: 120.77.152.72:9876 #连接超时时间
   producer:
     send-message-timeout: 30000 #发送消息超时时间
     group: order-group

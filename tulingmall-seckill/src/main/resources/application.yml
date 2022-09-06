@@ -2,7 +2,7 @@ server:
   port: 8844
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/micromall?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://47.106.85.182:3306/micromall?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
     username: root
     password: root
     druid:
@@ -176,7 +176,7 @@ redis:
 
 
 rocketmq:
-  name-server: 192.168.65.232:9876 #连接超时时间
+  name-server: 120.77.152.72:9876 #连接超时时间
   producer:
     send-message-timeout: 30000 #发送消息超时时间
     group: order-group
