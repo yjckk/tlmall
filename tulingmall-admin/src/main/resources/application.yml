@@ -44,7 +44,7 @@ secure:
       - /upload/product/**
 aliyun:
   oss:
-    endpoint: oss-cn-shenzhen.aliyuncs.com # oss对外服务的访问域名
+    endpoint: oss-cn-beijing.aliyuncs.com # oss对外服务的访问域名
     accessKeyId: LTAI4GEUt6qh1Y2yXEpu5smZ # 访问身份验证中用到用户标识
     accessKeySecret: NoogpsAdiQxZQ3E40ghh5SsscXUm8k # 用户用于加密签名字符串和oss用来验证签名字符串的密钥
     bucketName: tuling-mall-yjc # oss的存储空间
