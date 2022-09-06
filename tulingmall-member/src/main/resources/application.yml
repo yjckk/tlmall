@@ -16,7 +16,7 @@ spring:
         login-password: druid
   data:
     mongodb:
-      host: tlshop.com #公共服務
+      host: 120.77.85.235 #公共服務
       port: 27017
       database: micromall
   redis:
