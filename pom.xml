@@ -181,11 +181,11 @@
                 <version>${logstash-logback.version}</version>
             </dependency>
             <!--集成SpringBoot Admin监控-->
-            <dependency>
-                <groupId>de.codecentric</groupId>
-                <artifactId>spring-boot-admin-starter-server</artifactId>
-                <version>${admin-starter-server.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>de.codecentric</groupId>-->
+<!--                <artifactId>spring-boot-admin-starter-server</artifactId>-->
+<!--                <version>${admin-starter-server.version}</version>-->
+<!--            </dependency>-->
         </dependencies>
     </dependencyManagement>
 
