@@ -16,25 +16,7 @@ pipeline {
 
       }
     }
-    stage('sonar代码质量分析') {
-      steps {
-        container('maven') {
-          withCredentials([string(credentialsId: "$SONAR_CREDENTIAL_ID", variable: 'SONAR_TOKEN')]) {
-            withSonarQubeEnv('sonar') {
-              sh 'echo 当前目录 `pwd`'
-              sh "mvn sonar:sonar -gs `pwd`/mvn-settings.xml -Dsonar.branch=$BRANCH_NAME -Dsonar.login=$SONAR_TOKEN"
-            }
 
-          }
-
-          timeout(time: 1, unit: 'HOURS') {
-            waitForQualityGate true
-          }
-
-        }
-
-      }
-    }
     stage('构建镜像-推送镜像') {
       steps {
         container('maven') {
@@ -68,10 +50,10 @@ pipeline {
             sh 'docker tag  $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:$PROJECT_VERSION '
             sh 'docker push  $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:$PROJECT_VERSION '
             withCredentials([usernamePassword(credentialsId: "$GITHUB_CREDENTIAL_ID", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                sh 'git config --global user.email "liml.hz@gmail.com" '
-                sh 'git config --global user.name "flover4" '
+                sh 'git config --global user.email "1471072864@qq.com" '
+                sh 'git config --global user.name "yjckk" '
                 sh 'git tag -a $PROJECT_NAME-$PROJECT_VERSION -m "$PROJECT_VERSION" '
-                sh 'git push http://$GIT_USERNAME:$GIT_PASSWORD@github.com/$GITHUB_ACCOUNT/gulimall_src_leifengyang.git --tags --ipv4'
+                sh 'git push http://$GIT_USERNAME:$GIT_PASSWORD@github.com/$GITHUB_ACCOUNT/tlmall.git --tags --ipv4'
             }
 
         }
@@ -80,12 +62,12 @@ pipeline {
 
   }
   environment {
-    DOCKER_CREDENTIAL_ID = 'dockerhub-id'
+    DOCKER_CREDENTIAL_ID = 'aliyun-hub-id'
     GITHUB_CREDENTIAL_ID = 'github-id'
     KUBECONFIG_CREDENTIAL_ID = 'demo-kubeconfig'
-    REGISTRY = 'docker.io'
-    DOCKERHUB_NAMESPACE = 'flover4'
-    GITHUB_ACCOUNT = 'flover4'
+    REGISTRY = 'registry.cn-shenzhen.aliyuncs.com'
+    DOCKERHUB_NAMESPACE = 'fengqi_yjc'
+    GITHUB_ACCOUNT = 'yjckk'
     SONAR_CREDENTIAL_ID = 'sonar-qube'
     BRANCH_NAME = 'master'
   }
