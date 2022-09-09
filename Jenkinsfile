@@ -68,7 +68,6 @@ pipeline {
     REGISTRY = 'registry.cn-shenzhen.aliyuncs.com'
     DOCKERHUB_NAMESPACE = 'fengqi_yjc'
     GITHUB_ACCOUNT = 'yjckk'
-    SONAR_CREDENTIAL_ID = 'sonar-qube'
     BRANCH_NAME = 'master'
   }
   parameters {
