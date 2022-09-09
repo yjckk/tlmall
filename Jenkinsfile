@@ -1,53 +1,96 @@
 pipeline {
-    //指定任务在哪个集群节点中执行
-    agent any
-
-    //声明全局变量,方便后面使用
-    environment{
-        harborUser ='admin'
-        harborPasswd='Harbor12345'
-        harborAddress='120.77.171.208:80'
-        harborRepo='repo'
+  agent {
+    node {
+      label 'maven'
     }
 
-    // 存放所有任务的合集
-    stages {
-        stage('拉取Git仓库代码') {
-            steps {
-               checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: '0516bcb8-285f-4c50-a674-f2bfa040bf00', url: 'http://47.106.85.182:8929/gitlab-instance-0dae4b1a/demo.git']]])
-            }
-        }
-        stage('通过maven构建项目'){
-            steps{
-               sh '/var/jenkins_home/maven/bin/mvn clean package -DskipTests'
-            }
+  }
+  stages {
+    stage('拉取代码') {
+      steps {
+        git(url: 'https://github.com/yjckk/tlmall.git', credentialsId: 'github-id', branch: 'master', changelog: true, poll: false)
+        sh 'echo 正在构建 $PROJECT_NAME  版本号：$PROJECT_VERSION 将会提交给 $REGISTRY 镜像仓库'
+        container('maven') {
+          sh 'mvn clean install -Dmaven.test.skip=true -gs `pwd`/mvn-settings.xml'
         }
 
-        stage('通过Docker制作自定义镜像') {
-            steps {
-              sh '''mv ./target/*.jar ./docker
-docker build -t ${JOB_NAME}:latest ./docker/'''
-            }
-        }
-
-        stage('将自定义镜像推送到Harbor') {
-            steps {
-               sh '''docker login -u ${harborUser} -p ${harborPasswd} ${harborAddress}
-                        docker tag ${JOB_NAME}:latest ${harborAddress}/${harborRepo}/${JOB_NAME}:latest
-                        docker push  ${harborAddress}/${harborRepo}/${JOB_NAME}:latest'''
-            }
-        }
-
-        stage('将yml传到k8smaster') {
-            steps {
-           sshPublisher(publishers: [sshPublisherDesc(configName: 'k8s', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: 'pipeline.yml')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
-            }
-        }
-         stage('远程执行k8s-master的kubectl的命令') {
-            steps {
-          sh '''ssh root@120.77.85.235 kubectl apply -f /usr/local/k8s/pipeline.yml
-                ssh root@120.77.85.235 kubectl rollout restart deployment pipeline -n test'''
-            }
-        }
+      }
     }
+    stage('sonar代码质量分析') {
+      steps {
+        container('maven') {
+          withCredentials([string(credentialsId: "$SONAR_CREDENTIAL_ID", variable: 'SONAR_TOKEN')]) {
+            withSonarQubeEnv('sonar') {
+              sh 'echo 当前目录 `pwd`'
+              sh "mvn sonar:sonar -gs `pwd`/mvn-settings.xml -Dsonar.branch=$BRANCH_NAME -Dsonar.login=$SONAR_TOKEN"
+            }
+
+          }
+
+          timeout(time: 1, unit: 'HOURS') {
+            waitForQualityGate true
+          }
+
+        }
+
+      }
+    }
+    stage('构建镜像-推送镜像') {
+      steps {
+        container('maven') {
+          sh 'mvn -Dmaven.test.skip=true -gs `pwd`/mvn-settings.xml clean package'
+          sh 'cd $PROJECT_NAME && docker build -f Dockerfile -t $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER .'
+          withCredentials([usernamePassword(passwordVariable : 'DOCKER_PASSWORD' ,usernameVariable : 'DOCKER_USERNAME' ,credentialsId : "$DOCKER_CREDENTIAL_ID" ,)]) {
+            sh 'echo "$DOCKER_PASSWORD" | docker login $REGISTRY -u "$DOCKER_USERNAME" --password-stdin'
+            sh 'docker tag  $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:latest '
+            sh 'docker push  $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:latest '
+          }
+
+        }
+
+      }
+    }
+    stage('部署到k8s') {
+      steps {
+        input(id: "deploy-to-dev-$PROJECT_NAME", message: "是否将 $PROJECT_NAME 部署到集群中?")
+        kubernetesDeploy(configs: "$PROJECT_NAME/deploy/**", enableConfigSubstitution: true, kubeconfigId: "$KUBECONFIG_CREDENTIAL_ID")
+      }
+    }
+    stage('发布版本'){
+      when{
+        expression{
+          return params.PROJECT_VERSION =~ /v.*/
+        }
+      }
+      steps {
+          container ('maven') {
+            input(id: 'release-image-with-tag', message: '发布当前版本镜像吗?')
+            sh 'docker tag  $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:$PROJECT_VERSION '
+            sh 'docker push  $REGISTRY/$DOCKERHUB_NAMESPACE/$PROJECT_NAME:$PROJECT_VERSION '
+            withCredentials([usernamePassword(credentialsId: "$GITHUB_CREDENTIAL_ID", passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                sh 'git config --global user.email "liml.hz@gmail.com" '
+                sh 'git config --global user.name "flover4" '
+                sh 'git tag -a $PROJECT_NAME-$PROJECT_VERSION -m "$PROJECT_VERSION" '
+                sh 'git push http://$GIT_USERNAME:$GIT_PASSWORD@github.com/$GITHUB_ACCOUNT/gulimall_src_leifengyang.git --tags --ipv4'
+            }
+
+        }
+      }
+    }
+
+  }
+  environment {
+    DOCKER_CREDENTIAL_ID = 'dockerhub-id'
+    GITHUB_CREDENTIAL_ID = 'github-id'
+    KUBECONFIG_CREDENTIAL_ID = 'demo-kubeconfig'
+    REGISTRY = 'docker.io'
+    DOCKERHUB_NAMESPACE = 'flover4'
+    GITHUB_ACCOUNT = 'flover4'
+    SONAR_CREDENTIAL_ID = 'sonar-qube'
+    BRANCH_NAME = 'master'
+  }
+  parameters {
+    string(name: 'PROJECT_VERSION', defaultValue: 'v0.0Beta', description: '项目版本')
+    string(name: 'PROJECT_NAME', defaultValue: 'gulimall-gateway', description: '构建模块')
+  }
 }
