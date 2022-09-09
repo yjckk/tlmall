@@ -91,6 +91,6 @@ pipeline {
   }
   parameters {
     string(name: 'PROJECT_VERSION', defaultValue: 'v0.0Beta', description: '项目版本')
-    string(name: 'PROJECT_NAME', defaultValue: 'gulimall-gateway', description: '构建模块')
+    string(name: 'PROJECT_NAME', defaultValue: 'tulingmall-gateway', description: '构建模块')
   }
 }
